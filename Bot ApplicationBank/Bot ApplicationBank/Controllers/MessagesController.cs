@@ -77,13 +77,12 @@ namespace Bot_ApplicationBank
                     await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData);
                 }
 
-                bool isRateRequest = true;
-
+                
                 if (userMessage.ToLower().Contains("clear"))
                 {
                     endOutput = "User data cleared";
                     await stateClient.BotState.DeleteStateForUserAsync(activity.ChannelId, activity.From.Id);
-                    isRateRequest = false;
+                   
                 }
 
                 if (userMessage.Length == 3 & currenList.Contains(userMessage))
@@ -105,11 +104,11 @@ namespace Bot_ApplicationBank
                             userData.SetProperty<string>("BaseRate", baseRate);
                             await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData);
                             endOutput = "Base currency is set to " + baseRate + ". You can now check exchange rate for base currency by 'Base currency'.";
-                            isRateRequest = false;
+                            
                         }else
                         {
                             endOutput = ("Sorry, I'm afraid I don't understand this currency code:(");
-                            isRateRequest = false;
+                           
                         }
                         
                     }
@@ -125,7 +124,7 @@ namespace Bot_ApplicationBank
                     if (baseRate == null)
                     {
                         endOutput = "Base currency not assigned, please set base currency, for example 'Set base to NZD'";
-                        isRateRequest = false;
+                        
                     }
                     else
                     {
@@ -152,7 +151,7 @@ namespace Bot_ApplicationBank
                 {
                     string basicRate = await client.GetStringAsync(new Uri("http://api.fixer.io/latest"));
                     rootObject = JsonConvert.DeserializeObject<ExchangeObject.RootObject>(basicRate);                  
-                    reply = activity.CreateReply($"At the date: {activity.Timestamp}, base currency is {rootObject.@base}, rate is\r\n{String.Join(Environment.NewLine +"", getRates(rootObject))}");
+                    reply = activity.CreateReply($"At time: {activity.Timestamp}, base currency is {rootObject.@base}, rate is\r\n{String.Join(Environment.NewLine +"", getRates(rootObject))}");
                     await connector.Conversations.ReplyToActivityAsync(reply);
                 }
 
