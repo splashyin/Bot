@@ -22,11 +22,17 @@ namespace Bot_ApplicationBank
             if (activity.Type == ActivityTypes.Message)
             {
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
+
+
+
                 // calculate something for us to return
                 int length = (activity.Text ?? string.Empty).Length;
-
+                DateTime time = activity.Timestamp.Value;
                 // return our reply to the user
-                Activity reply = activity.CreateReply($"You sent {activity.Text} which was {length} characters");
+                Activity reply = activity.CreateReply($"You sent {activity.Text} at {time}");
+
+
+
                 await connector.Conversations.ReplyToActivityAsync(reply);
             }
             else
