@@ -11,11 +11,11 @@ namespace Bot_ApplicationBank.DataModels
         [JsonProperty(PropertyName = "Id")]
         public string ID { get; set; }
 
-        [JsonProperty(PropertyName = "name")]
-        public double Name { get; set; }
+        [JsonProperty(PropertyName = "date")]
+        public string  Date { get; set; }
 
-        
-
+        [JsonProperty(PropertyName = "transaction")]
+        public string Transaction { get; set; }
 
     }
 }

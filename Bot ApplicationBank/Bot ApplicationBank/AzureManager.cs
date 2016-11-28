@@ -13,11 +13,13 @@ namespace Bot_ApplicationBank
 
         private static AzureManager instance;
         private MobileServiceClient client;
-        private IMobileServiceTable<Timeline> timelinetable;
+        private IMobileServiceTable<Timeline> timelineTable;
+
+
         private AzureManager()
         {
             this.client = new MobileServiceClient("http://bankbottimeline.azurewebsites.net");
-            this.timelinetable = this.client.GetTable<Timeline>();
+            this.timelineTable = this.client.GetTable<Timeline>();
         }
 
         public MobileServiceClient AzureClient
@@ -38,14 +40,24 @@ namespace Bot_ApplicationBank
             }
         }
 
-        public async Task AddTimeLine(Timeline timeline)
+
+
+        public async Task AddTimeline(Timeline timeline)
+
         {
-            await this.timelinetable.InsertAsync(timeline);
+
+            await this.timelineTable.InsertAsync(timeline);
+
         }
 
+
+
         public async Task<List<Timeline>> GetTimelines()
+
         {
-            return await this.timelinetable.ToListAsync();
+
+            return await this.timelineTable.ToListAsync();
+
         }
     }
 }

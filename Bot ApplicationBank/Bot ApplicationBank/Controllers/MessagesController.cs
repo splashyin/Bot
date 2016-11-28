@@ -8,6 +8,10 @@ using Newtonsoft.Json;
 using Bot_ApplicationBank.Model;
 using System.Collections.Generic;
 using System.Reflection;
+using Bot_ApplicationBank.DataModels;
+using Microsoft.WindowsAzure.MobileServices;
+using Microsoft.Bot.Builder.Luis;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Bot_ApplicationBank
 {
@@ -59,11 +63,19 @@ namespace Bot_ApplicationBank
 
                 List<string> currenList = new List<string> { "nzd", "usd", "aud", "bng", "brl", "cad", "chf", "cny", "czk", "dkk", "gbp", "hkd", "hrk", "huf", "idr", "ils", "inr", "jpy", "krw", "mxn", "myr", "nok", "php", "pln", "ron", "rub", "sek", "sgd", "thb", "try", "zar", "eur" };
 
+                ExchangeObject.RootObject rootObject;
+
+                HttpClient client = new HttpClient();
+
+                Activity reply;
 
                 var userMessage = activity.Text;
 
                 string endOutput = "Hello, how can I help you today?";
                
+
+
+
 
                 // calculate something for us to return
                 if (userData.GetProperty<bool>("SentGreeting"))
@@ -78,12 +90,29 @@ namespace Bot_ApplicationBank
                 }
 
                 
+
+
+
+
+
+
+
+
+
+
+
                 if (userMessage.ToLower().Contains("clear"))
                 {
                     endOutput = "User data cleared";
                     await stateClient.BotState.DeleteStateForUserAsync(activity.ChannelId, activity.From.Id);
                    
                 }
+
+
+
+
+
+
 
                 if (userMessage.Length == 3 & currenList.Contains(userMessage))
                 {
@@ -93,6 +122,16 @@ namespace Bot_ApplicationBank
                 {
                     endOutput = "Sorry, I'm afraid I don't understand this currency code:(";
                 }
+
+
+
+
+
+
+
+
+
+
 
                 //user message like "set base to NZD"
                 if (userMessage.Length > 11)
@@ -118,6 +157,21 @@ namespace Bot_ApplicationBank
                     }
                 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 if (userMessage.ToLower().Equals("base currency"))
                 {
                     string baseRate = userData.GetProperty<string>("BaseRate");
@@ -134,6 +188,66 @@ namespace Bot_ApplicationBank
 
                 }
 
+
+
+
+
+
+
+
+                
+
+                if (userMessage.ToLower().Contains("tran"))
+                {
+                  
+                    string message = "";
+                    message = userMessage.ToLower().Replace(" ", "%20");
+                    string luisURL = "https://api.projectoxford.ai/luis/v2.0/apps/ec611017-3246-4647-acbc-d96e94d34ea4?subscription-key=aa138cfe431f40dea3460b06fd713712&q=" + message + "&timezoneOffset=12.0";
+                   
+
+                    string luisReply = await client.GetStringAsync(new Uri(luisURL));
+                    Microsoft.Bot.Builder.Luis.Models.LuisResult luisresult = JsonConvert.DeserializeObject<Microsoft.Bot.Builder.Luis.Models.LuisResult>(luisReply);
+
+                    if (luisresult.Entities.Count >= 2)
+                    {
+                        List<Timeline> timelines = await AzureManager.AzureManagerInstance.GetTimelines();
+                        endOutput = "";
+                        string month = "";
+                        foreach (var e in luisresult.Entities)
+                        {
+                            if (e.Type != "transaction")
+                            {
+                                month = e.Entity;
+                                
+                            }
+                        }
+                        foreach (Timeline t in timelines)
+                        {
+                            string tranMonth = t.Date.ToLower();
+                            if (month.Contains(tranMonth.Substring(0, 3)))
+                            {
+                                endOutput += t.Date + ", " + t.Transaction + "\n\n";
+                            }
+                        }
+                    }
+                }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 // return our reply to the user
                 Activity infoReply = activity.CreateReply(endOutput);
 
@@ -141,17 +255,12 @@ namespace Bot_ApplicationBank
 
                 
 
-                ExchangeObject.RootObject rootObject;
-                 
-                HttpClient client = new HttpClient();
-      
-                Activity reply;
 
                 if (activity.Text.ToLower().Contains("show") & activity.Text.ToLower().Contains("base"))
                 {
                     string basicRate = await client.GetStringAsync(new Uri("http://api.fixer.io/latest"));
                     rootObject = JsonConvert.DeserializeObject<ExchangeObject.RootObject>(basicRate);                  
-                    reply = activity.CreateReply($"At time: {activity.Timestamp}, base currency is {rootObject.@base}, rate is\r\n{String.Join(Environment.NewLine +"", getRates(rootObject))}");
+                    reply = activity.CreateReply($"At time: {activity.Timestamp}, base currency is {rootObject.@base}, rate is\n{String.Join("\n\n", getRates(rootObject))}");
                     await connector.Conversations.ReplyToActivityAsync(reply);
                 }
 
@@ -159,7 +268,7 @@ namespace Bot_ApplicationBank
                 {
                     string specifiedRate = await client.GetStringAsync(new Uri("http://api.fixer.io/latest?base=" + activity.Text));
                     rootObject = JsonConvert.DeserializeObject<ExchangeObject.RootObject>(specifiedRate);  
-                    reply = activity.CreateReply($"At time {activity.Timestamp}, base currency is {rootObject.@base}, rate is\r\n{String.Join(Environment.NewLine + "", getRates(rootObject))}");
+                    reply = activity.CreateReply($"At time {activity.Timestamp}, base currency is {rootObject.@base}, rate is\n{String.Join("\n\n", getRates(rootObject))}");
                     await connector.Conversations.ReplyToActivityAsync(reply);
                 }
 
