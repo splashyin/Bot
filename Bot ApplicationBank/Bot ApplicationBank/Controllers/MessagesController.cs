@@ -93,7 +93,7 @@ namespace Bot_ApplicationBank
                
 
 
-                var boolProfileComplete = userProfile.GetProperty<bool>("ProfileComplete");
+                var boolProfileComplete = userProfile.GetProperty<bool>("YouAreLoggedIn");
 
                 System.Text.StringBuilder sb = new System.Text.StringBuilder();
 
@@ -116,7 +116,7 @@ namespace Bot_ApplicationBank
 
                     // Tell the user their profile is complete
                     
-                    sb.Append("Your profile is complete.\n\n");
+                    sb.Append("You are logged in.\n\n");
                     sb.Append(String.Format("FirstName = {0}\n\n", FirstName));
                     sb.Append(String.Format("LastName = {0}\n\n", LastName));
                     sb.Append(String.Format("Gender = {0}", Gender));
@@ -148,7 +148,7 @@ namespace Bot_ApplicationBank
                     HeroCard plCard = new HeroCard()
                     {
                         Title = "Hello again",
-                        Text = "Check the exchange rate for any currency by entering the 3-digit currency code.\n\n Set your base currency, try 'Set base to NZD'. :)",
+                        Subtitle = "To check what service we provide, enter 'Help'.",
                         Images = cardImages
 
                     };
@@ -175,7 +175,7 @@ namespace Bot_ApplicationBank
                     HeroCard plCard = new HeroCard()
                     {
                         Title = "Hello, Welcome to Contoso Bank",
-                        Text = "Check the exchange rate for any currency by entering the 3-digit currency code.\n\n Set your base currency, try 'Set base to NZD'. :)",
+                        Subtitle = "To check what service we provide, enter 'Help'.",
                         Images = cardImages
 
                     };
@@ -194,8 +194,19 @@ namespace Bot_ApplicationBank
                 //if user type "clear"
                 if (userMessage.ToLower().Contains("clear"))
                 {
-                    endOutput = "User data cleared";
+                    endOutput = "User data deleted";
                     await stateClient.BotState.DeleteStateForUserAsync(activity.ChannelId, activity.From.Id);
+                    isrequest = false;
+                    isgreeting = false;
+                    isProfile = false;
+                }
+
+
+                //if user type "clear"
+                if (userMessage.ToLower().Contains("help"))
+                {
+                    endOutput = "Check exchange rate by entering the 3-digit currency code.\n\nCheck preset base currency rate by entering 'base currency'.\n\nReset data by entering 'Clear'.\n\nShow transcation of a month by entering 'transaction' keyword with month, for example 'Show me transactions in June'.";
+                    //await stateClient.BotState.DeleteStateForUserAsync(activity.ChannelId, activity.From.Id);
                     isrequest = false;
                     isgreeting = false;
                     isProfile = false;

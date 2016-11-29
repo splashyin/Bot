@@ -22,12 +22,12 @@ namespace HelloFormFlowBot
         public static IForm<ProfileForm> BuildForm()
         {
             return new FormBuilder<ProfileForm>()
-                    .Message("Welcome to the Contoso Bot! First let's fill your profile.")
+                    .Message("Welcome to the Contoso Bot! Log in to start.")
                     .OnCompletion(async (context, profileForm) =>
                     {
                     // Set BotUserData
                     context.PrivateConversationData.SetValue<bool>(
-                            "ProfileComplete", true);
+                            "YouAreLoggedIn", true);
                         context.PrivateConversationData.SetValue<string>(
                             "FirstName", profileForm.FirstName);
                         context.PrivateConversationData.SetValue<string>(
@@ -36,7 +36,7 @@ namespace HelloFormFlowBot
                             "Gender", profileForm.Gender.ToString());
 
                     // Tell the user that the form is complete
-                    await context.PostAsync("Your profile is complete.");
+                    await context.PostAsync("You are logged in.");
                     })
                     .Build();
         }
