@@ -53,6 +53,7 @@ namespace Bot_ApplicationBank
         
         public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
         {
+
             if (activity.Type == ActivityTypes.Message)
             {
                 ConnectorClient connector = new ConnectorClient(new Uri(activity.ServiceUrl));
@@ -67,108 +68,122 @@ namespace Bot_ApplicationBank
 
                 HttpClient client = new HttpClient();
 
-                Activity reply;
+
 
                 var userMessage = activity.Text;
 
-                string endOutput = "Hello, how can I help you today?";
-               
-
-
+                string endOutput = "";
+                
+                Activity greating = activity.CreateReply(endOutput);
+                bool isrequest = true;
+                bool isgreeting = true;
 
 
                 // calculate something for us to return
                 if (userData.GetProperty<bool>("SentGreeting"))
                 {
-                    endOutput = "Hello again. Do you know now you can check the exchange rate for any currency by entering the 3-digit currency code?" +
-                        " You can also set your base currency like this 'Set base to NZD'. Try it out now:)";
+                    List<CardImage> cardImages = new List<CardImage>();
+                    cardImages.Add(new CardImage(url: "http://icons.iconarchive.com/icons/graphicloads/flat-finance/128/bank-icon.png"));
+                    
+                    greating.Recipient = activity.From;
+                    greating.Type = "message";
+                    greating.Attachments = new List<Attachment>();
+
+
+                    ThumbnailCard plCard = new ThumbnailCard()
+                    {
+                        Title = "Hello again",
+                        Subtitle = "Do you know now you can check the exchange rate for any currency by entering the 3-digit currency code?" +
+                        " You can also set your base currency like this 'Set base to NZD'. Try it out now:)",
+                        Images = cardImages
+
+                    };
+
+                    Attachment plAttachment = plCard.ToAttachment();
+                    greating.Attachments.Add(plAttachment);
                 }
                 else
                 {
                     userData.SetProperty<bool>("SentGreeting", true);
                     await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData);
-                }
 
+                    List<CardImage> cardImages = new List<CardImage>();
+                    cardImages.Add(new CardImage(url: "http://icons.iconarchive.com/icons/graphicloads/flat-finance/128/bank-icon.png"));
+
+                    greating.Type = "message";
+                    greating.Attachments = new List<Attachment>();
+
+
+                    ThumbnailCard plCard = new ThumbnailCard()
+                    {
+                        Title = "Hello, Welcome to Contoso Bank",
+                        Subtitle = "Do you know now you can check the exchange rate for any currency by entering the 3-digit currency code?" +
+                        " You can also set your base currency like this 'Set base to NZD'. Try it out now:)",
+                        Images = cardImages
+
+                    };
+
+                    Attachment plAttachment = plCard.ToAttachment();
+                    greating.Attachments.Add(plAttachment);
+
+                }
                 
 
 
 
-
-
-
-
-
-
-
-
+                //if user type "clear"
                 if (userMessage.ToLower().Contains("clear"))
                 {
                     endOutput = "User data cleared";
                     await stateClient.BotState.DeleteStateForUserAsync(activity.ChannelId, activity.From.Id);
-                   
+                    isrequest = false;
+                    isgreeting = false;
                 }
 
 
 
-
-
-
-
+                //if user type a 3-digit code
                 if (userMessage.Length == 3 & currenList.Contains(userMessage))
                 {
                     endOutput = "Getting details...";
+                    isrequest = true;
+                    isgreeting = false;
                 }
-                else if(userMessage.Length == 3 & !currenList.Contains(userMessage))
+                else if (userMessage.Length == 3 & !currenList.Contains(userMessage))
                 {
                     endOutput = "Sorry, I'm afraid I don't understand this currency code:(";
+                    isrequest = false;
+                    isgreeting = false;
                 }
-
-
-
-
-
-
-
-
 
 
 
                 //user message like "set base to NZD"
                 if (userMessage.Length > 11)
                 {
-                    if (userMessage.ToLower().Substring(0, userMessage.Length-3).Equals("set base to "))
+                    if (userMessage.ToLower().Substring(0, userMessage.Length - 3).Equals("set base to "))
                     {
-                        string baseRate = userMessage.Substring(userMessage.Length-3);
+                        string baseRate = userMessage.Substring(userMessage.Length - 3);
                         if (currenList.Contains(baseRate)) {
                             userData.SetProperty<string>("BaseRate", baseRate);
                             await stateClient.BotState.SetUserDataAsync(activity.ChannelId, activity.From.Id, userData);
                             endOutput = "Base currency is set to " + baseRate + ". You can now check exchange rate for base currency by 'Base currency'.";
-                            
-                        }else
+
+                        } else
                         {
                             endOutput = ("Sorry, I'm afraid I don't understand this currency code:(");
-                           
+
                         }
-                        
+
                     }
                     else
                     {
                         endOutput = "Base currency not assigned, please set base currency, for example 'Set base to NZD'.";
+
                     }
+                    isrequest = false;
+                    isgreeting = false;
                 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -178,32 +193,26 @@ namespace Bot_ApplicationBank
                     if (baseRate == null)
                     {
                         endOutput = "Base currency not assigned, please set base currency, for example 'Set base to NZD'";
-                        
+                        isrequest = false;
+                        isgreeting = false;
                     }
                     else
                     {
                         activity.Text = baseRate;
                         endOutput = "Getting details for base currency...";
+                        isrequest = true;
+                        isgreeting = false;
                     }
 
                 }
 
-
-
-
-
-
-
-
-                
-
                 if (userMessage.ToLower().Contains("tran"))
                 {
-                  
+
                     string message = "";
                     message = userMessage.ToLower().Replace(" ", "%20");
                     string luisURL = "https://api.projectoxford.ai/luis/v2.0/apps/ec611017-3246-4647-acbc-d96e94d34ea4?subscription-key=aa138cfe431f40dea3460b06fd713712&q=" + message + "&timezoneOffset=12.0";
-                   
+
 
                     string luisReply = await client.GetStringAsync(new Uri(luisURL));
                     Microsoft.Bot.Builder.Luis.Models.LuisResult luisresult = JsonConvert.DeserializeObject<Microsoft.Bot.Builder.Luis.Models.LuisResult>(luisReply);
@@ -218,7 +227,7 @@ namespace Bot_ApplicationBank
                             if (e.Type != "transaction")
                             {
                                 month = e.Entity;
-                                
+
                             }
                         }
                         foreach (Timeline t in timelines)
@@ -229,48 +238,48 @@ namespace Bot_ApplicationBank
                                 endOutput += t.Date + ", " + t.Transaction + "\n\n";
                             }
                         }
+
                     }
+                    isrequest = true;
+                    isgreeting = false;
                 }
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                // return our reply to the user
-                Activity infoReply = activity.CreateReply(endOutput);
-
-                await connector.Conversations.ReplyToActivityAsync(infoReply);
-
-                
-
-
-                if (activity.Text.ToLower().Contains("show") & activity.Text.ToLower().Contains("base"))
+                if (isrequest & activity.Text.ToLower().Contains("show") & activity.Text.ToLower().Contains("base"))
                 {
                     string basicRate = await client.GetStringAsync(new Uri("http://api.fixer.io/latest"));
-                    rootObject = JsonConvert.DeserializeObject<ExchangeObject.RootObject>(basicRate);                  
-                    reply = activity.CreateReply($"At time: {activity.Timestamp}, base currency is {rootObject.@base}, rate is\n{String.Join("\n\n", getRates(rootObject))}");
-                    await connector.Conversations.ReplyToActivityAsync(reply);
+                    rootObject = JsonConvert.DeserializeObject<ExchangeObject.RootObject>(basicRate);
+                    endOutput = $"Base currency is {rootObject.@base}, at time {activity.Timestamp}\n\n Exchange rate is\n\n{String.Join("\n\n", getRates(rootObject))}";
+                    //isrequest = true;
+                    isgreeting = false;
                 }
 
-                else if(activity.Text.Length == 3)
+                else if (isrequest & activity.Text.Length == 3)
                 {
                     string specifiedRate = await client.GetStringAsync(new Uri("http://api.fixer.io/latest?base=" + activity.Text));
-                    rootObject = JsonConvert.DeserializeObject<ExchangeObject.RootObject>(specifiedRate);  
-                    reply = activity.CreateReply($"At time {activity.Timestamp}, base currency is {rootObject.@base}, rate is\n{String.Join("\n\n", getRates(rootObject))}");
-                    await connector.Conversations.ReplyToActivityAsync(reply);
+                    rootObject = JsonConvert.DeserializeObject<ExchangeObject.RootObject>(specifiedRate);
+                    endOutput = $"Base currency is {rootObject.@base}, at time {activity.Timestamp}\n\n Exchange rate is\n\n{String.Join("\n\n", getRates(rootObject))}";
+                    //isrequest = true;
+                    isgreeting = false;
                 }
+
+                /////////////////////////////////////////////////////////////////
+                if (isgreeting)
+                {
+                    await connector.Conversations.SendToConversationAsync(greating);
+                }
+                else if(isrequest)
+                {
+                    Activity infoReply = activity.CreateReply(endOutput);
+                    await connector.Conversations.ReplyToActivityAsync(infoReply);
+                }else
+                {
+                    Activity infoReply = activity.CreateReply(endOutput);
+                    await connector.Conversations.ReplyToActivityAsync(infoReply);
+                }
+
+
 
             }
             else
