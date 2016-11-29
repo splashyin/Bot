@@ -202,16 +202,26 @@ namespace Bot_ApplicationBank
                 }
 
 
-                //if user type "clear"
-                if (userMessage.ToLower().Contains("help"))
+                //if user type "help"
+                if (userMessage.ToLower() == "help")
                 {
-                    endOutput = "Check exchange rate by entering the 3-digit currency code.\n\nCheck preset base currency rate by entering 'base currency'.\n\nReset data by entering 'Clear'.\n\nShow transcation of a month by entering 'transaction' keyword with month, for example 'Show me transactions in June'.";
+                    endOutput = "Check exchange rate by entering the 3-digit currency code.\n\nCheck preset base currency rate by entering 'base currency'.\n\nReset data by entering 'Clear'.\n\nShow transcation of a month by entering 'transaction' keyword with month, for example 'Show me transactions in June'.\n\nTo quit, enter 'Quit'.";
                     //await stateClient.BotState.DeleteStateForUserAsync(activity.ChannelId, activity.From.Id);
                     isrequest = false;
                     isgreeting = false;
                     isProfile = false;
                 }
 
+                //if user type "quit"
+                if (userMessage.ToLower() == "quit")
+                {
+                    endOutput = "Thank you. We are looking forward to see you again.";
+                    await stateClient.BotState.DeleteStateForUserAsync(activity.ChannelId, activity.From.Id);
+                    //await stateClient.BotState.DeleteStateForUserAsync(activity.ChannelId, activity.From.Id);
+                    isrequest = false;
+                    isgreeting = false;
+                    isProfile = false;
+                }
 
 
                 //if user type a 3-digit code
