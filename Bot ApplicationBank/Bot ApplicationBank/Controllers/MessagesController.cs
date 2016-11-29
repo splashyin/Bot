@@ -12,6 +12,9 @@ using Bot_ApplicationBank.DataModels;
 using Microsoft.WindowsAzure.MobileServices;
 using Microsoft.Bot.Builder.Luis;
 using static System.Net.Mime.MediaTypeNames;
+using Microsoft.Bot.Builder.Dialogs;
+using Microsoft.Bot.Builder.FormFlow;
+using HelloFormFlowBot;
 
 namespace Bot_ApplicationBank
 {
@@ -23,6 +26,15 @@ namespace Bot_ApplicationBank
         /// Receive a message from a user and reply to it
         /// </summary>
         /// 
+
+
+        internal static IDialog<ProfileForm> MakeRootDialog()
+        {
+            return Chain.From(() => FormDialog.FromForm(ProfileForm.BuildForm));
+        }
+
+
+
 
         //Seperate exchange rates for different currency, put each rate in a list, return a list of exchange rates
         public List<string> getRates(ExchangeObject.RootObject root)
@@ -68,6 +80,51 @@ namespace Bot_ApplicationBank
 
                 HttpClient client = new HttpClient();
 
+                // Get any saved values
+                StateClient sc = activity.GetStateClient();
+                BotData userProfile = sc.BotState.GetPrivateConversationData(
+                    activity.ChannelId, activity.Conversation.Id, activity.From.Id);
+
+
+
+                bool isrequest = true;
+                bool isgreeting = true;
+                bool isProfile = true;
+               
+
+
+                var boolProfileComplete = userProfile.GetProperty<bool>("ProfileComplete");
+
+                System.Text.StringBuilder sb = new System.Text.StringBuilder();
+
+               
+
+
+                if (!boolProfileComplete)
+                {
+                    // Call our FormFlow by calling MakeRootDialog
+                    await Conversation.SendAsync(activity, MakeRootDialog);
+                    isgreeting = false;
+                    isProfile = true;
+                }
+                else
+                {
+                    // Get the saved profile values
+                    var FirstName = userProfile.GetProperty<string>("FirstName");
+                    var LastName = userProfile.GetProperty<string>("LastName");
+                    var Gender = userProfile.GetProperty<string>("Gender");
+
+                    // Tell the user their profile is complete
+                    
+                    sb.Append("Your profile is complete.\n\n");
+                    sb.Append(String.Format("FirstName = {0}\n\n", FirstName));
+                    sb.Append(String.Format("LastName = {0}\n\n", LastName));
+                    sb.Append(String.Format("Gender = {0}", Gender));
+                    isgreeting = false;
+                    isProfile = true;
+
+
+                }
 
 
                 var userMessage = activity.Text;
@@ -75,9 +132,7 @@ namespace Bot_ApplicationBank
                 string endOutput = "";
                 
                 Activity greating = activity.CreateReply(endOutput);
-                bool isrequest = true;
-                bool isgreeting = true;
-
+                
 
                 // calculate something for us to return
                 if (userData.GetProperty<bool>("SentGreeting"))
@@ -100,6 +155,10 @@ namespace Bot_ApplicationBank
 
                     Attachment plAttachment = plCard.ToAttachment();
                     greating.Attachments.Add(plAttachment);
+                    isProfile = false;
+                    isgreeting = true;
+
+
                 }
                 else
                 {
@@ -123,6 +182,9 @@ namespace Bot_ApplicationBank
 
                     Attachment plAttachment = plCard.ToAttachment();
                     greating.Attachments.Add(plAttachment);
+                    isProfile = false;
+                    isgreeting = true;
+
 
                 }
                 
@@ -136,6 +198,7 @@ namespace Bot_ApplicationBank
                     await stateClient.BotState.DeleteStateForUserAsync(activity.ChannelId, activity.From.Id);
                     isrequest = false;
                     isgreeting = false;
+                    isProfile = false;
                 }
 
 
@@ -146,12 +209,14 @@ namespace Bot_ApplicationBank
                     endOutput = "";
                     isrequest = true;
                     isgreeting = false;
+                    isProfile = false;
                 }
                 else if (userMessage.Length == 3 & !currenList.Contains(userMessage.ToLower()))
                 {
                     endOutput = "Sorry, I'm afraid I don't understand this currency code:(";
                     isrequest = false;
                     isgreeting = false;
+                    isProfile = false;
                 }
 
 
@@ -182,6 +247,7 @@ namespace Bot_ApplicationBank
                     }
                     isrequest = false;
                     isgreeting = false;
+                    isProfile = false;
                 }
 
 
@@ -195,12 +261,14 @@ namespace Bot_ApplicationBank
                         endOutput = "Base currency not assigned, please set base currency, for example 'Set base to NZD'";
                         isrequest = false;
                         isgreeting = false;
+                        isProfile = false;
                     }
                     else
                     {
                         activity.Text = baseRate;
                         isrequest = true;
                         isgreeting = false;
+                        isProfile = false;
                     }
 
                 }
@@ -254,6 +322,7 @@ namespace Bot_ApplicationBank
                     }
                     isrequest = true;
                     isgreeting = false;
+                    isProfile = false;
                 }
 
 
@@ -263,7 +332,7 @@ namespace Bot_ApplicationBank
                     string basicRate = await client.GetStringAsync(new Uri("http://api.fixer.io/latest"));
                     rootObject = JsonConvert.DeserializeObject<ExchangeObject.RootObject>(basicRate);
                     endOutput = $"Base currency is {rootObject.@base}, at {activity.Timestamp}\n\nExchange rate:\n\n{String.Join("\n\n", getRates(rootObject))}";
-                    //isrequest = true;
+                    isProfile = false;
                     isgreeting = false;
                 }
 
@@ -273,10 +342,16 @@ namespace Bot_ApplicationBank
                     rootObject = JsonConvert.DeserializeObject<ExchangeObject.RootObject>(specifiedRate);
                     endOutput = $"Base currency is {rootObject.@base}, at {activity.Timestamp}\n\nExchange rate:\n\n{String.Join("\n\n", getRates(rootObject))}";
                     isgreeting = false;
+                    isProfile = false;
                 }
 
                 /////////////////////////////////////////////////////////////////
-                if (isgreeting)
+                if (isProfile)
+                {
+                    Activity replyMessage = activity.CreateReply(sb.ToString());
+                    await connector.Conversations.ReplyToActivityAsync(replyMessage);
+                }
+                else if(isgreeting)
                 {
                     await connector.Conversations.SendToConversationAsync(greating);
                 }
