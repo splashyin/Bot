@@ -90,11 +90,10 @@ namespace Bot_ApplicationBank
                     greating.Attachments = new List<Attachment>();
 
 
-                    ThumbnailCard plCard = new ThumbnailCard()
+                    HeroCard plCard = new HeroCard()
                     {
                         Title = "Hello again",
-                        Subtitle = "Do you know now you can check the exchange rate for any currency by entering the 3-digit currency code?" +
-                        " You can also set your base currency like this 'Set base to NZD'. Try it out now:)",
+                        Text = "Check the exchange rate for any currency by entering the 3-digit currency code.\n\n Set your base currency, try 'Set base to NZD'. :)",
                         Images = cardImages
 
                     };
@@ -114,11 +113,10 @@ namespace Bot_ApplicationBank
                     greating.Attachments = new List<Attachment>();
 
 
-                    ThumbnailCard plCard = new ThumbnailCard()
+                    HeroCard plCard = new HeroCard()
                     {
                         Title = "Hello, Welcome to Contoso Bank",
-                        Subtitle = "Do you know now you can check the exchange rate for any currency by entering the 3-digit currency code?" +
-                        " You can also set your base currency like this 'Set base to NZD'. Try it out now:)",
+                        Text = "Check the exchange rate for any currency by entering the 3-digit currency code.\n\n Set your base currency, try 'Set base to NZD'. :)",
                         Images = cardImages
 
                     };
@@ -143,13 +141,13 @@ namespace Bot_ApplicationBank
 
 
                 //if user type a 3-digit code
-                if (userMessage.Length == 3 & currenList.Contains(userMessage))
+                if (userMessage.Length == 3 & currenList.Contains(userMessage.ToLower()))
                 {
-                    endOutput = "Getting details...";
+                    endOutput = "";
                     isrequest = true;
                     isgreeting = false;
                 }
-                else if (userMessage.Length == 3 & !currenList.Contains(userMessage))
+                else if (userMessage.Length == 3 & !currenList.Contains(userMessage.ToLower()))
                 {
                     endOutput = "Sorry, I'm afraid I don't understand this currency code:(";
                     isrequest = false;
@@ -159,8 +157,9 @@ namespace Bot_ApplicationBank
 
 
                 //user message like "set base to NZD"
-                if (userMessage.Length > 11)
+                if (userMessage.Length > 11 & userMessage.ToLower().Contains("set base"))
                 {
+                    endOutput = "";
                     if (userMessage.ToLower().Substring(0, userMessage.Length - 3).Equals("set base to "))
                     {
                         string baseRate = userMessage.Substring(userMessage.Length - 3);
@@ -189,6 +188,7 @@ namespace Bot_ApplicationBank
 
                 if (userMessage.ToLower().Equals("base currency"))
                 {
+                    endOutput = "";
                     string baseRate = userData.GetProperty<string>("BaseRate");
                     if (baseRate == null)
                     {
@@ -199,7 +199,6 @@ namespace Bot_ApplicationBank
                     else
                     {
                         activity.Text = baseRate;
-                        endOutput = "Getting details for base currency...";
                         isrequest = true;
                         isgreeting = false;
                     }
@@ -213,14 +212,15 @@ namespace Bot_ApplicationBank
                     message = userMessage.ToLower().Replace(" ", "%20");
                     string luisURL = "https://api.projectoxford.ai/luis/v2.0/apps/ec611017-3246-4647-acbc-d96e94d34ea4?subscription-key=aa138cfe431f40dea3460b06fd713712&q=" + message + "&timezoneOffset=12.0";
 
-
+                    endOutput = "";
+                    string temp = "";
                     string luisReply = await client.GetStringAsync(new Uri(luisURL));
                     Microsoft.Bot.Builder.Luis.Models.LuisResult luisresult = JsonConvert.DeserializeObject<Microsoft.Bot.Builder.Luis.Models.LuisResult>(luisReply);
 
                     if (luisresult.Entities.Count >= 2)
                     {
                         List<Timeline> timelines = await AzureManager.AzureManagerInstance.GetTimelines();
-                        endOutput = "";
+                        
                         string month = "";
                         foreach (var e in luisresult.Entities)
                         {
@@ -233,12 +233,24 @@ namespace Bot_ApplicationBank
                         foreach (Timeline t in timelines)
                         {
                             string tranMonth = t.Date.ToLower();
-                            if (month.Contains(tranMonth.Substring(0, 3)))
+                            if ((month.Contains(tranMonth.Substring(0, 3))))
                             {
-                                endOutput += t.Date + ", " + t.Transaction + "\n\n";
+                                temp += t.Date + ", " + t.Transaction + "\n\n";
                             }
                         }
+                        if (temp == "")
+                        {
+                            endOutput = "No transaction found.";
+                        }
+                        else
+                        {
+                            endOutput = temp;
+                        }
 
+                    }
+                    else
+                    {
+                        endOutput = "Oops, I'm afraid I don't understand, please try again.";
                     }
                     isrequest = true;
                     isgreeting = false;
@@ -250,7 +262,7 @@ namespace Bot_ApplicationBank
                 {
                     string basicRate = await client.GetStringAsync(new Uri("http://api.fixer.io/latest"));
                     rootObject = JsonConvert.DeserializeObject<ExchangeObject.RootObject>(basicRate);
-                    endOutput = $"Base currency is {rootObject.@base}, at time {activity.Timestamp}\n\n Exchange rate is\n\n{String.Join("\n\n", getRates(rootObject))}";
+                    endOutput = $"Base currency is {rootObject.@base}, at {activity.Timestamp}\n\nExchange rate:\n\n{String.Join("\n\n", getRates(rootObject))}";
                     //isrequest = true;
                     isgreeting = false;
                 }
@@ -259,8 +271,7 @@ namespace Bot_ApplicationBank
                 {
                     string specifiedRate = await client.GetStringAsync(new Uri("http://api.fixer.io/latest?base=" + activity.Text));
                     rootObject = JsonConvert.DeserializeObject<ExchangeObject.RootObject>(specifiedRate);
-                    endOutput = $"Base currency is {rootObject.@base}, at time {activity.Timestamp}\n\n Exchange rate is\n\n{String.Join("\n\n", getRates(rootObject))}";
-                    //isrequest = true;
+                    endOutput = $"Base currency is {rootObject.@base}, at {activity.Timestamp}\n\nExchange rate:\n\n{String.Join("\n\n", getRates(rootObject))}";
                     isgreeting = false;
                 }
 
